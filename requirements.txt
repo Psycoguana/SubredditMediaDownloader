@@ -1,0 +1,5 @@
+psaw==0.1.0
+tqdm==4.62.3
+aiohttp==3.8.1
+aiofiles==0.8.0
+requests==2.26.0
