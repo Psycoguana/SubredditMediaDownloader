@@ -1,2 +1,5 @@
 venv/
 .idea/
+logs.log
+__pycache__
+*img
