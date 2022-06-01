@@ -1,4 +1,5 @@
 import asyncio
+import functools
 import logging
 
 import requests
@@ -28,21 +29,30 @@ def retry_connection(func):
     logger = get_logger(__name__, logging.INFO)
 
     async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except (client_exceptions.ClientError,
-                requests.exceptions.ConnectionError,
-                asyncio.exceptions.TimeoutError) as error:
-            logger.error(f"\nError trying to connect. {type(error).__name__}: {error}")
-            sleep_secs = 10
-            for i in range(sleep_secs):
-                logger.info(f"\rRetrying in {sleep_secs - i}...", end='', flush=True)
+        post_id = kwargs['name'].split('.')[0]
+        
+        for tries in range(1, 6):
+            try:
+                return await func(*args, **kwargs)
+            except (client_exceptions.ClientError,
+                    requests.exceptions.ConnectionError,
+                    asyncio.exceptions.TimeoutError) as error:
 
-            return await wrapper(*args, **kwargs)
+                logger.debug(f"Error trying to connect. {type(error).__name__}: {error}")
 
-        except Exception as error:
-            logger.error(f"\nError downloading post:")
-            logger.error(f"\t{type(error).__name__}: {error}")
-            raise
+                if tries < 5:
+                    logger.debug(f"Try {tries}/5. Retrying in 10 seconds...")
+                else:
+                    # If we got to this point, we've tried 5 times without succeeding.
+                    if 'name' in kwargs:
+                        logger.error(f"Too many retries. Post will be skipped: {post_id}")
+
+                    return None
+
+            except Exception as error:
+                logger.error(f"\nError downloading post: {post_id}")
+                logger.error(f"\t{type(error).__name__}: {error}")
+
+                return None
 
     return wrapper
