@@ -132,8 +132,12 @@ class SubredditDownloader:
 
         with tqdm(total=submissions_len, colour='green') as pbar:
             for sub in submissions:
-                if re.search(r'\.(jpg|gif?v|png)$', sub.url):
+                if re.search(r'\.(jpg|png)$', sub.url):
                     elements[sub.id] = sub.url
+                elif re.search(r'\.gif?v$', sub.url):
+                    link = await self.get_real_gif_link(sub.url)
+                    if link:
+                        elements[sub.id] = link
                 elif sub.url.startswith('https://www.reddit.com/gallery/'):
                     try:
                         images = await self.parse_image(sub.id, sub.media_metadata)
@@ -153,6 +157,17 @@ class SubredditDownloader:
 
                 pbar.update(1)
         return elements
+
+    async def get_real_gif_link(self, link):
+        # Imgur does a very strange thing where their .gifv are actually just .mp4,
+        # so we need the real link to the video.
+        async with self.session.get(link) as resp:
+            data = await resp.read()
+            # Convert bytes to str.
+            data = data.decode('utf-8')
+            match = re.findall(r'content="(.+mp4)', data)
+
+        return '' if not match else match[0]
 
     @retry_connection
     async def download(self, name, url) -> None:
