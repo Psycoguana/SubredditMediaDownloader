@@ -132,9 +132,9 @@ class SubredditDownloader:
 
         with tqdm(total=submissions_len, colour='green') as pbar:
             for sub in submissions:
-                if re.search(r'\.(jpg|png)$', sub.url):
+                if re.search(r'\.(jpg|gif|png)$', sub.url):
                     elements[sub.id] = sub.url
-                elif re.search(r'\.gif?v$', sub.url):
+                elif re.search(r'\.gifv$', sub.url):
                     link = await self.get_real_gif_link(sub.url)
                     if link:
                         elements[sub.id] = link
