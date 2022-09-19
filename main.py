@@ -25,7 +25,7 @@ class SubredditDownloader:
         self.bot_config = self.config['BOT']
 
         # Turn off warnings.
-        warnings.filterwarnings('ignore')
+        #warnings.filterwarnings('ignore')
 
         self.api = PushshiftAPI()
         self.session = self.set_session()
@@ -57,7 +57,7 @@ class SubredditDownloader:
         await self.download_elements(elements)
 
     async def download_elements(self, links: dict):
-        pattern = r'\.(jpe?g|gif?v|png|mp4)'
+        pattern = r'\.(mp4)'
         tasks = []
         for name, link in links.items():
             match = re.search(pattern, link)
@@ -132,30 +132,31 @@ class SubredditDownloader:
 
         with tqdm(total=submissions_len, colour='green') as pbar:
             for sub in submissions:
-                if re.search(r'\.(jpg|gif|png)$', sub.url):
-                    elements[sub.id] = sub.url
-                elif re.search(r'\.gifv$', sub.url):
-                    link = await self.get_real_gif_link(sub.url)
-                    if link:
-                        elements[sub.id] = link
-                elif sub.url.startswith('https://www.reddit.com/gallery/'):
-                    try:
-                        images = await self.parse_image(sub.id, sub.media_metadata)
-                        for key, value in images.items():
-                            elements[key] = value
-                    except AttributeError:
-                        # This happens with removed posts.
+                if hasattr(sub, 'url'):
+                    if re.search(r'\.(jpg|gif|png)$', sub.url):
+                        elements[sub.id] = sub.url
+                    elif re.search(r'\.gifv$', sub.url):
+                        link = await self.get_real_gif_link(sub.url)
+                        if link:
+                            elements[sub.id] = link
+                    elif sub.url.startswith('https://www.reddit.com/gallery/'):
+                        try:
+                            images = await self.parse_image(sub.id, sub.media_metadata)
+                            for key, value in images.items():
+                                elements[key] = value
+                        except AttributeError:
+                            # This happens with removed posts.
+                            pass
+
+                    elif sub.url.startswith('https://v.redd.it/'):
+                        video = await self.parse_video(sub)
+                        if video:
+                            elements[sub.id] = video
+                    else:
+                        # External link. Ignore it.
                         pass
 
-                elif sub.url.startswith('https://v.redd.it/'):
-                    video = await self.parse_video(sub)
-                    if video:
-                        elements[sub.id] = video
-                else:
-                    # External link. Ignore it.
-                    pass
-
-                pbar.update(1)
+                    pbar.update(1)
         return elements
 
     async def get_real_gif_link(self, link):
@@ -164,9 +165,11 @@ class SubredditDownloader:
         async with self.session.get(link) as resp:
             data = await resp.read()
             # Convert bytes to str.
-            data = data.decode('utf-8')
-            match = re.findall(r'content="(.+mp4)', data)
-
+            try:
+                data = data.decode('utf-8')
+                match = re.findall(r'content="(.+mp4)', data)
+            except:
+                return ''
         return '' if not match else match[0]
 
     @retry_connection
