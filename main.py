@@ -1,3 +1,4 @@
+from ast import If
 import re
 import time
 import json
@@ -25,7 +26,7 @@ class SubredditDownloader:
         self.bot_config = self.config['BOT']
 
         # Turn off warnings.
-        #warnings.filterwarnings('ignore')
+        warnings.filterwarnings('ignore')
 
         self.api = PushshiftAPI()
         self.session = self.set_session()
@@ -57,7 +58,7 @@ class SubredditDownloader:
         await self.download_elements(elements)
 
     async def download_elements(self, links: dict):
-        pattern = r'\.(mp4)'
+        pattern = r'\.(jpe?g|gif?v|png|mp4)'
         tasks = []
         for name, link in links.items():
             match = re.search(pattern, link)
@@ -156,7 +157,7 @@ class SubredditDownloader:
                         # External link. Ignore it.
                         pass
 
-                    pbar.update(1)
+                pbar.update(1)
         return elements
 
     async def get_real_gif_link(self, link):
@@ -165,11 +166,9 @@ class SubredditDownloader:
         async with self.session.get(link) as resp:
             data = await resp.read()
             # Convert bytes to str.
-            try:
-                data = data.decode('utf-8')
-                match = re.findall(r'content="(.+mp4)', data)
-            except:
-                return ''
+            data = data.decode('utf-8')
+            match = re.findall(r'content="(.+mp4)', data)
+
         return '' if not match else match[0]
 
     @retry_connection
