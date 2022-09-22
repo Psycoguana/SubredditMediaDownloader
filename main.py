@@ -133,7 +133,7 @@ class SubredditDownloader:
 
         with tqdm(total=submissions_len, colour='green') as pbar:
             for sub in submissions:
-                if hasattr(sub, 'url'):
+                if not hasattr(sub, 'url'):
                     continue
                 if re.search(r'\.(jpg|gif|png)$', sub.url):
                     elements[sub.id] = sub.url
