@@ -133,6 +133,8 @@ class SubredditDownloader:
         with tqdm(total=submissions_len, colour='green') as pbar:
             for sub in submissions:
                 if not hasattr(sub, 'url'):
+                    # Update progress bar status
+                    pbar.update(1)
                     continue
                 if re.search(r'\.(jpg|gif|png)$', sub.url):
                     elements[sub.id] = sub.url
@@ -156,8 +158,8 @@ class SubredditDownloader:
                 else:
                     # External link. Ignore it.
                     pass
-
-            pbar.update(1)
+                # Update progress bar status
+                pbar.update(1)
         return elements
 
     async def get_real_gif_link(self, link):
