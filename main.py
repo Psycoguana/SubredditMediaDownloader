@@ -172,6 +172,7 @@ class SubredditDownloader:
                 data = data.decode('utf-8')
                 match = re.findall(r'content="(.+mp4)', data)
             except UnicodeDecodeError:
+                print(f"Wrong encoding format for {link}. Skipped.")
                 return ''
 
         return '' if not match else match[0]
