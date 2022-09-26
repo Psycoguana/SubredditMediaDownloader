@@ -25,7 +25,7 @@ class SubredditDownloader:
         self.bot_config = self.config['BOT']
 
         # Turn off warnings.
-        #warnings.filterwarnings('ignore')
+        warnings.filterwarnings('ignore')
 
         self.api = PushshiftAPI()
         self.session = self.set_session()
