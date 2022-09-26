@@ -132,6 +132,10 @@ class SubredditDownloader:
 
         with tqdm(total=submissions_len, colour='green') as pbar:
             for sub in submissions:
+                if not hasattr(sub, 'url'):
+                    # Update progress bar status
+                    pbar.update(1)
+                    continue
                 if re.search(r'\.(jpg|gif|png)$', sub.url):
                     elements[sub.id] = sub.url
                 elif re.search(r'\.gifv$', sub.url):
@@ -154,7 +158,7 @@ class SubredditDownloader:
                 else:
                     # External link. Ignore it.
                     pass
-
+                # Update progress bar status
                 pbar.update(1)
         return elements
 
@@ -164,8 +168,12 @@ class SubredditDownloader:
         async with self.session.get(link) as resp:
             data = await resp.read()
             # Convert bytes to str.
-            data = data.decode('utf-8')
-            match = re.findall(r'content="(.+mp4)', data)
+            try:
+                data = data.decode('utf-8')
+                match = re.findall(r'content="(.+mp4)', data)
+            except UnicodeDecodeError:
+                print(f"Wrong encoding format for {link}. Skipped.")
+                return ''
 
         return '' if not match else match[0]
 
