@@ -1,3 +1,4 @@
+from ast import If
 import re
 import time
 import json
@@ -25,7 +26,7 @@ class SubredditDownloader:
         self.bot_config = self.config['BOT']
 
         # Turn off warnings.
-        warnings.filterwarnings('ignore')
+        #warnings.filterwarnings('ignore')
 
         self.api = PushshiftAPI()
         self.session = self.set_session()
@@ -132,6 +133,8 @@ class SubredditDownloader:
 
         with tqdm(total=submissions_len, colour='green') as pbar:
             for sub in submissions:
+                if not hasattr(sub, 'url'):
+                    continue
                 if re.search(r'\.(jpg|gif|png)$', sub.url):
                     elements[sub.id] = sub.url
                 elif re.search(r'\.gifv$', sub.url):
@@ -155,7 +158,7 @@ class SubredditDownloader:
                     # External link. Ignore it.
                     pass
 
-                pbar.update(1)
+            pbar.update(1)
         return elements
 
     async def get_real_gif_link(self, link):
@@ -164,8 +167,11 @@ class SubredditDownloader:
         async with self.session.get(link) as resp:
             data = await resp.read()
             # Convert bytes to str.
-            data = data.decode('utf-8')
-            match = re.findall(r'content="(.+mp4)', data)
+            try:
+                data = data.decode('utf-8')
+                match = re.findall(r'content="(.+mp4)', data)
+            except UnicodeDecodeError:
+                return ''
 
         return '' if not match else match[0]
 
