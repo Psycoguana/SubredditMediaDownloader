@@ -46,6 +46,7 @@ Simply run the file `main.py` and it will start downloading.
 * [**tqdm**](https://github.com/tqdm/tqdm): Progressbar.
 * [**aiohttp**](https://github.com/aio-libs/aiohttp): Async http client/server framework.
 * [**aiofiles**](https://github.com/Tinche/aiofiles): File support for asyncio.
+* [**ffmpeg-python**](https://github.com/kkroening/ffmpeg-python): Python bindings for FFmpeg.
 
 
 # 📃 License:

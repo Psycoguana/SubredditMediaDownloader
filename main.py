@@ -8,6 +8,7 @@ import datetime
 import warnings
 from configparser import ConfigParser
 
+import ffmpeg
 import aiofiles
 import aiohttp
 from psaw import PushshiftAPI
@@ -188,10 +189,60 @@ class SubredditDownloader:
                 return
 
             content = await response.read()
-            await self.write_to_disk(name=name, image=content)
+
+            if url.startswith('https://v.redd.it'):
+                await self.download_reddit_video(name, url, video_data=content)
+            else:
+                await self.write_to_disk(name=name, image=content)
+
+    async def download_reddit_video(self, name, url, video_data):
+        # Download video's audio.
+        audio_link = re.sub(r'DASH_(\d{3,4})', 'DASH_audio', url)
+        async with self.session.get(audio_link) as audio_response:
+            audio_data = await audio_response.read()
+
+        # Store them into files.
+        temp_video_file = f'{name}_temp.mp4'
+        temp_audio_file = f'{name}_audio_temp.mp4'
+        async with aiofiles.open(temp_video_file, 'wb') as file:
+            await file.write(video_data)
+
+        async with aiofiles.open(temp_audio_file, 'wb') as file:
+            await file.write(audio_data)
+
+        # Load them into ffmpeg and join them.
+        input_video = ffmpeg.input(temp_video_file)
+        input_audio = ffmpeg.input(temp_audio_file)
+
+        dir_path = await self.get_file_dst_folder(name)
+        dst_file = str(dir_path / name)
+
+        stream = ffmpeg.output(input_video,
+                               input_audio,
+                               filename=dst_file,
+                               vcodec='copy',
+                               acodec='copy',
+                               loglevel='quiet')
+        try:
+            stream.run(overwrite_output=True)
+        except ffmpeg.Error:
+            # Video probably has no audio.
+            await self.write_to_disk(name=name, image=video_data)
+
+        # Delete temporary files.
+        pathlib.Path(temp_video_file).unlink()
+        pathlib.Path(temp_audio_file).unlink()
 
     async def write_to_disk(self, name, image):
         """ Write the downloaded image/video/gif into the corresponding folder """
+        dir_path = await self.get_file_dst_folder(name)
+
+        file_path = dir_path / name
+        f = await aiofiles.open(file_path, mode='wb')
+        await f.write(image)
+        await f.close()
+
+    async def get_file_dst_folder(self, name):
         if name.endswith('mp4'):
             sub_folder = 'videos'
         elif name.endswith('gif') or name.endswith('gifv'):
@@ -202,16 +253,12 @@ class SubredditDownloader:
         dir_path = pathlib.Path(self.bot_config['DOWNLOAD_FOLDER']) / self.bot_config['SUBREDDIT'] / sub_folder
         try:
             dir_path.mkdir(parents=True, exist_ok=True)
+            return dir_path
         except FileNotFoundError as error:
             print(error)
             print("Is your Download folder written correctly?")
             await self.session.close()
             exit()
-
-        file_path = dir_path / name
-        f = await aiofiles.open(file_path, mode='wb')
-        await f.write(image)
-        await f.close()
 
     @staticmethod
     async def parse_image(id_, images):
