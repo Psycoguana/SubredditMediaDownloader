@@ -29,6 +29,8 @@ Install the dependencies:
 
 `python -m pip install -r requirements.txt`
 
+⚠️ Make sure you [**install FFmpeg**](https://ffmpeg.org/download.html). Otherwise the script will crash ⚠️
+
 Fill in the `config.ini` file as needed. There you can set:
     
 * Subreddit you'll download your media from.
