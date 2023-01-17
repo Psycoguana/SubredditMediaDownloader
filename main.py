@@ -1,16 +1,16 @@
-import re
-import time
+import asyncio
+import datetime
 import json
 import logging
 import pathlib
-import asyncio
-import datetime
+import re
+import time
 import warnings
 from configparser import ConfigParser
 
-import ffmpeg
 import aiofiles
 import aiohttp
+import ffmpeg
 from psaw import PushshiftAPI
 from tqdm import tqdm, trange
 from tqdm.asyncio import tqdm as async_tqdm
@@ -82,7 +82,7 @@ class SubredditDownloader:
         """ Get the total number of submissions """
         submissions = await self.get_submissions(ask_len=True)
         next(submissions)
-        return self.api.metadata_.get('total_results')
+        return self.api.metadata_['es']['hits']['total']['value']
 
     async def get_submissions(self, ask_len=False):
         subreddit = self.bot_config['SUBREDDIT']
@@ -120,12 +120,12 @@ class SubredditDownloader:
                                            subreddit=subreddit,
                                            before=before,
                                            after=after,
-                                           filter=['id',
+                                           fields=['id',
                                                    'crosspost_parent_list',
                                                    'media',
                                                    'media_metadata',
                                                    'url',
-                                                   'full_link']
+                                                   'permalink']
                                            )
 
     async def get_elements_info(self, submissions, submissions_len) -> dict:
@@ -313,7 +313,7 @@ class SubredditDownloader:
             'accept-language': 'en,es-ES;q=0.9,es;q=0.8',
         }
 
-        link = submission.full_link.rstrip() + '.json'
+        link = f'https://www.reddit.com{submission.permalink}.json'
         async with self.session.get(link, headers=headers) as response:
             if response.status == 429:
                 print("Too many requests. Sleeping 5 minutes and trying again...")
